@@ -167,7 +167,7 @@ nla_2017_formatted <- nla_2017_tntp %>%
   pivot_wider(names_from = "ANALYTE", values_from = "RESULT") %>%
   tibble() %>%
   inner_join(., nla_2017_metadata) %>%
-  select(COLOR, PTL, YEAR, SITE_ID, NTL, CHLA, DOC, NITRATE_N, NITRITE_N, AMMONIA_N,  -UID) %>%
+  select(COLOR, PTL, YEAR, SITE_ID, NTL, CHLA, DOC, NITRATE_N, NITRITE_N, AMMONIA_N, -UID) %>%
   group_by(YEAR, SITE_ID) %>%
   summarize(across(.cols = c("COLOR", "NTL", "PTL", "CHLA", "DOC", "NITRATE_N", "NITRITE_N", "AMMONIA_N"), 
                    .fns = ~ mean(.x, na.rm = TRUE))) %>%
@@ -229,17 +229,17 @@ nla_2017_formatted <- nla_2017_tntp %>%
 ### microcystin plot...
 
 sdd_boxplots <- bind_rows(nla_2017_formatted %>% ungroup() %>%
-            select(ts_group, ts, "SECCHI" = secchi, DOC, MICX, COLOR) %>%
+            select(ts_group, ts, "SECCHI" = secchi, DOC, MICX, COLOR, CHLA) %>%
             unique(),
           nla_2012_ptl_color %>% ungroup() %>%
-            select(ts_group, ts, SECCHI, DOC, MICX, COLOR) %>%
+            select(ts_group, ts, SECCHI, DOC, MICX, COLOR, CHLA) %>%
             unique(),
           nla_2007_formatted %>% ungroup() %>%
-            select(ts_group, ts, SECCHI, DOC, COLOR) %>%
+            select(ts_group, ts, SECCHI, DOC, COLOR, CHLA) %>%
             unique()) %>% 
   filter(!is.na(ts),
-         ts_group %in% c("chla_ts", "ncp_ts")) %>%
-  mutate(across(.cols = c(SECCHI, DOC, MICX), 
+         ts_group %in% c("sdd_ts", "ncp_ts")) %>%
+  mutate(across(.cols = c(SECCHI, DOC, MICX, CHLA), 
                 .fns = ~ ifelse(is.nan(.x), 0, .x)),
          ts_group = gsub(pattern = "_ts", replacement = "", x = ts_group),
          Category = case_when(ts == "dys" ~ "Dystrophic",
@@ -249,13 +249,13 @@ sdd_boxplots <- bind_rows(nla_2017_formatted %>% ungroup() %>%
                               ts == "hypereu" ~ "Hypereutrophic",
                               ts == "mixo" ~ "Mixotrophic"),
         ts_group_condesed = case_when(ts_group == "ncp" ~ "NCP",
-                                      ts_group == "chla" ~ "TSI[CHLA]"),
+                                      ts_group == "sdd" ~ "TSI[SDD]"),
         x_axis = as.factor(paste(Category, ts_group_condesed, sep = ",\n"))) %>% 
   group_by(x_axis) %>%
   mutate(x_axis = fct_reorder(x_axis, SECCHI, .fun = 'mean')) %>%
   ggplot() +
   geom_boxplot_pattern(aes(x=reorder(x_axis, SECCHI, decreasing = TRUE), 
-                           y=log1p(SECCHI),
+                           y=log1p(CHLA),
                            fill=Category,
                            pattern=ts_group_condesed),
                        pattern="stripe",
@@ -263,24 +263,22 @@ sdd_boxplots <- bind_rows(nla_2017_formatted %>% ungroup() %>%
                        pattern_spacing=0.02,
                        pattern_density=0.1) +
   geom_boxplot(aes(x=reorder(x_axis, SECCHI, decreasing = TRUE),
-                   y=log1p(SECCHI),
+                   y=log1p(CHLA),
                    fill=Category,
                    alpha=ts_group_condesed)) +
   scale_fill_manual(values=c("#a6761d","#66a61e","#006d2c", "#02818a", "#e6ab02", "#8da0cb"),
                     name="Trophic Category:") +
   scale_alpha_manual(values=c(0,1),name="Classification\nSystem:",labels=c("NCP","TSI[CHLA]")) +
-  scale_y_reverse(breaks=log1p(c(0,10,20,30,40)),labels=c(0,10,20,30,40)) +
-  labs(x="Trophic State/Status",y="Secchi Depth (m)") +
-  guides(fill=guide_legend(ncol=2)) +
+  scale_y_continuous(breaks=log1p(c(0,10,30, 100, 300, 1000, 3000)),
+                     labels=c(0,10,30, 100, 300, 1000, 3000)) +
+  labs(x="Trophic State/Status",y="Chlorophyll a (\U03BCg/L)") +
+  #guides(fill=guide_legend(ncol=2)) +
   theme_bw() +
   theme(axis.text=element_text(size=15,color="black"),
          axis.title=element_text(size=15,color="black"),
          legend.text=element_text(size=15,color="black"),
          legend.title=element_text(size=15,color="black"),
-         legend.background=element_rect(color="black"),
-         legend.position=c(0.76,0.125),
-         legend.direction = "vertical",
-         legend.box = "horizontal")
+         legend.position="bottom")
 
 micx_boxplots <- bind_rows(nla_2017_formatted %>% ungroup() %>%
             select(ts_group, ts, "SECCHI" = secchi, DOC, MICX, COLOR) %>%
@@ -292,7 +290,7 @@ micx_boxplots <- bind_rows(nla_2017_formatted %>% ungroup() %>%
             select(ts_group, ts, SECCHI, DOC, COLOR) %>%
             unique()) %>% 
   filter(!is.na(ts),
-         ts_group %in% c("chla_ts", "ncp_ts")) %>%
+         ts_group %in% c("sdd_ts", "ncp_ts")) %>%
   mutate(across(.cols = c(SECCHI, DOC, MICX), 
                 .fns = ~ ifelse(is.nan(.x), 0, .x)),
          ts_group = gsub(pattern = "_ts", replacement = "", x = ts_group),
@@ -303,7 +301,7 @@ micx_boxplots <- bind_rows(nla_2017_formatted %>% ungroup() %>%
                               ts == "hypereu" ~ "Hypereutrophic",
                               ts == "mixo" ~ "Mixotrophic"),
          ts_group_condesed = case_when(ts_group == "ncp" ~ "NCP",
-                                       ts_group == "chla" ~ "TSI[CHLA]"),
+                                       ts_group == "sdd" ~ "TSI[SDD]"),
          x_axis = as.factor(paste(Category, ts_group_condesed, sep = ",\n"))) %>% 
   group_by(x_axis) %>%
   mutate(x_axis = fct_reorder(x_axis, SECCHI, .fun = 'mean')) %>%
@@ -323,7 +321,7 @@ micx_boxplots <- bind_rows(nla_2017_formatted %>% ungroup() %>%
   scale_fill_manual(values=c("#a6761d","#66a61e","#006d2c", "#02818a", "#e6ab02", "#8da0cb"),
                     name="Trophic Category:") +
   scale_alpha_manual(values=c(0,1),name="Classification\nSystem:",labels=c("NCP","TSI[CHLA]")) +
-  scale_y_continuous(breaks=log1p(c(0,1, 3, 5, 30, 100)),labels=c(0,1, 3, 5, 30, 100)) +
+  scale_y_continuous(breaks=log1p(c(0,1, 3, 10, 30, 100)),labels=c(0,1, 3, 10, 30, 100)) +
   labs(x="Trophic State/Status",y="Microcystin (\U03BCg/L)") +
   guides(fill=guide_legend(ncol=1)) +
   theme_bw() +
@@ -345,7 +343,7 @@ doc_boxplots <- bind_rows(nla_2017_formatted %>% ungroup() %>%
             select(ts_group, ts, SECCHI, DOC, COLOR) %>%
             unique()) %>% 
   filter(!is.na(ts),
-         ts_group %in% c("chla_ts", "ncp_ts")) %>%
+         ts_group %in% c("sdd_ts", "ncp_ts")) %>%
   mutate(across(.cols = c(SECCHI, DOC, MICX), 
                 .fns = ~ ifelse(is.nan(.x), 0, .x)),
          ts_group = gsub(pattern = "_ts", replacement = "", x = ts_group),
@@ -356,7 +354,7 @@ doc_boxplots <- bind_rows(nla_2017_formatted %>% ungroup() %>%
                               ts == "hypereu" ~ "Hypereutrophic",
                               ts == "mixo" ~ "Mixotrophic"),
          ts_group_condesed = case_when(ts_group == "ncp" ~ "NCP",
-                                       ts_group == "chla" ~ "TSI[CHLA]"),
+                                       ts_group == "sdd" ~ "TSI[SDD]"),
          x_axis = as.factor(paste(Category, ts_group_condesed, sep = ",\n"))) %>% 
   group_by(x_axis) %>%
   mutate(x_axis = fct_reorder(x_axis, SECCHI, .fun = 'mean')) %>%
@@ -378,7 +376,7 @@ doc_boxplots <- bind_rows(nla_2017_formatted %>% ungroup() %>%
   scale_alpha_manual(values=c(0,1),name="Classification\nSystem:",labels=c("NCP","TSI[CHLA]")) +
   scale_y_continuous(breaks=log1p(c(0,3,10,30,100, 300, 800)),labels=c(0,3,10,30,100, 300, 800)) +
   labs(x="Trophic State/Status",y="DOC (mg/L)") +
-  guides(fill=guide_legend(ncol=1)) +
+  guides(fill=guide_legend(nrow=1)) +
   theme_bw() +
   theme(axis.text=element_text(size=15,color="black"),
         axis.title=element_text(size=15,color="black"),
@@ -444,23 +442,31 @@ pcu_boxplots <- bind_rows(nla_2017_formatted %>% ungroup() %>%
 arranged_boxplots <- plot_grid(
   sdd_boxplots + theme(axis.text.x = element_blank(),
                        axis.title.x = element_blank(),
-                       axis.ticks.x = element_blank()),
+                       axis.ticks.x = element_blank(),
+                       legend.position = "none"),
   micx_boxplots + theme(axis.text.x = element_blank(),
                         axis.title.x = element_blank(),
                         axis.ticks.x = element_blank()),
   doc_boxplots + theme(axis.text.x = element_blank(),
                        axis.title.x = element_blank(),
-                       axis.ticks.x = element_blank(),
-                       legend.position = "bottom"),
+                       axis.ticks.x = element_blank()),
   pcu_boxplots + theme(axis.text.x = element_blank(),
                        axis.title.x = element_blank(),
                        axis.ticks.x = element_blank()),
   labels = c("A", "B", "C", "D"), label_size = 20,
   nrow = 2, ncol = 2)
 
+legend_b <- get_legend(
+  sdd_boxplots
+)
+
+# add the legend underneath the row we made earlier. Give it 10%
+# of the height of one plot (via rel_heights).
+plot_grid(arranged_boxplots, legend_b, ncol = 1, rel_heights = c(1, .1))
+
 ggsave(filename = "../figures/water_quality_boxplots.png", 
-       plot = arranged_boxplots, 
-       device = "png", width = 12, height = 16, units = "in")
+       #plot = arranged_boxplots, 
+       device = "png", width = 12, height = 12, units = "in", bg = "white")
 
 all_plots <- map(.x = c("ncp_ts", "sdd_ts", "chla_ts", "ptl_ts"),
                  .f = ~ nla_2017_formatted %>%

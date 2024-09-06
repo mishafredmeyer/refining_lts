@@ -253,7 +253,7 @@ combined_TS_summary=combined_TS_test %>%
   summarize(Median_SECCHI=median(SECCHI,na.rm=T)) %>%
   filter(!is.na(Category)) %>%
   arrange(Median_SECCHI) %>%
-  mutate(FullName=paste(Category,case_when(Definition=="TSI_secchi_category" ~ "TSI[SD]",
+  mutate(FullName=paste(Category,case_when(Definition=="TSI_secchi_category" ~ "TSI[SDD]",
                                            Definition=="TS_NCP" ~ "NCP"),
                         sep=",\n"))
 
@@ -272,9 +272,9 @@ ggplot() +
   geom_boxplot(data=combined_TS_final,aes(x=FullName,y=log1p(SECCHI),fill=Category,alpha=Definition)) +
   scale_fill_manual(values=c("#8da0cb","#a6761d","#66a61e","#e6ab02","#02818a","#006d2c"),
                     name="Trophic Category:") +
-  scale_alpha_manual(values=c(0,1),name="Classification\nSystem:",labels=c("NCP","TSI[SD]")) +
+  scale_alpha_manual(values=c(0,1),name="Classification\nSystem:",labels=c("NCP","TSI[SDD]")) +
   scale_y_reverse(breaks=log1p(c(0,10,20,30,40)),labels=c(0,10,20,30,40)) +
-  labs(x="Trophic State/Status",y="Secchi Depth (m)") +
+  labs(x="Trophic State/Status",y="Secchi Disk Depth (m)") +
   guides(fill=guide_legend(ncol=2)) +
   theme_bw() +
   theme(axis.text=element_text(size=15,color="black"),
@@ -287,6 +287,11 @@ ggplot() +
         legend.box = "horizontal")
 
   
+
+ts.anova=aov(combined_TS_final$SECCHI ~ combined_TS_final$FullName)
+summary(ts.anova)
+TukeyHSD(ts.anova)
+
 
 ts.test=kruskal.test(x=combined_TS_final$SECCHI,g=combined_TS_final$FullName)
 dunn.test::dunn.test(x=combined_TS_final$SECCHI,g=combined_TS_final$FullName)
