@@ -208,7 +208,7 @@ ggplot() +
                     name="Trophic Category:") +
   scale_alpha_manual(values=c(0,1),name="Classification\nSystem:",labels=c("NCP","TSI[SDD]")) +
   scale_y_reverse(breaks=log1p(c(0,10,20,30,40)),labels=c(0,10,20,30,40)) +
-  labs(x="Trophic State/Status",y="Secchi Disk Depth (m)") +
+  labs(x="Trophic State",y="Secchi Disk Depth (m)") +
   guides(fill=guide_legend(ncol=2)) +
   theme_bw() +
   theme(axis.text=element_text(size=15,color="black"),
@@ -220,4 +220,5 @@ ggplot() +
         legend.direction = "vertical",
         legend.box = "horizontal")
 
+ggsave("../figures/sdd_tsi_ncp.png", width = 12, height = 6, units = "in")
 
