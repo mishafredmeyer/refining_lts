@@ -1,8 +1,27 @@
-library(tidyverse)
-library(ggpubr)
+### This script is created by Michael F Meyer (mfmeyere@usgs.gov) as part of 
+### of the manuscript "Clarifying the trophic state concept to advance freshwater
+### science, management, and interdisciplinary collaboration across spatial and 
+### temporal scales" This script uses data from the US Environmental Protection
+### Agency's National Lake Assessment (NLA) and Landsat surface refelctances. 
+### These data are merged to show how dominant wavelength can differ over several
+### different classifications of Lake Trophic State. The main product from this
+### script is to produce a plot that is included in the manuscript. 
+
+
+library(tidyverse) ## 2.0.0
+library(ggpubr) ## 0.6.0
+
+
+### Load in the necessary data
+
+nla_2007_formatted <- read_csv("../data/derived_products/nla_2007_formatted.csv")
+nla_2012_formatted <- read_csv("../data/derived_products/nla_2012_formatted.csv")
+nla_2017_formatted <- read_csv("../data/derived_products/nla_2017_formatted.csv")
+
+### Extract Secchi Disk Depth from all the NLA data
 
 combined_sdd <- bind_rows(nla_2007_formatted %>%
-                            select(SITE_ID, YEAR, SECCHI) %>%
+                            select(SITE_ID, YEAR, "SECCHI" = SECMEAN) %>%
                             unique(),
                           nla_2012_ptl_color %>%
                             select(SITE_ID, YEAR, SECCHI) %>%
@@ -11,7 +30,9 @@ combined_sdd <- bind_rows(nla_2007_formatted %>%
                             select(SITE_ID, YEAR, "SECCHI" = secchi) %>%
                             unique())
 
-merged_data <- read_csv("../1_aggregate/out/limnosat_redux_raw_rel_reflectance_ptl_color.csv") %>%
+### Load in the merged reflectance and water quality data, and then assign TS Classification 
+
+merged_data <- read_csv("../data/limnosat_redux_raw_rel_reflectance_ptl_color.csv") %>%
   inner_join(x = .,
              y = combined_sdd) %>%
   rowwise() %>%
@@ -31,11 +52,7 @@ merged_data <- read_csv("../1_aggregate/out/limnosat_redux_raw_rel_reflectance_p
   unite(col = "ts_names_type", c(ts, ts_group), sep = "_", remove = FALSE)
       
 
-
-
-ggplot(merged_data) +
-  geom_violin(aes(x = fct_reorder(ts_names_type, dWL, median) , 
-               y = dWL))
+## Plot data for Nutrient-Color Paradigm
 
 ncp_plot <- merged_data %>%
   group_by(ts, ts_names_type, ts_group) %>%
@@ -76,6 +93,7 @@ ncp_plot <- merged_data %>%
         legend.text = element_text(size = 14),
         legend.title = element_text(size = 16))
   
+## Plot data for trophic state index
 
 tsi_plot <- merged_data %>%
   group_by(ts, ts_names_type, ts_group) %>%
@@ -116,6 +134,8 @@ tsi_plot <- merged_data %>%
         legend.text = element_text(size = 14),
         legend.title = element_text(size = 16))
 
+
+## Plot the data for dominant wavelength
 
  box_violin <- merged_data %>%
   mutate(ts_names_type = ifelse(ts_names_type == "tsi_ts_oligo", "Oligo<sub>TSI</sub>", ts_names_type),

@@ -16,12 +16,14 @@ library(envFunc)
 
 profiles <- read_csv("../data/nla_all_years/nla_2017_profile-data.csv")
 
+check_strat <- read_csv("../data/derived_products/chexk_strat_area.csv")
 
+nla_2017_formatted <- read_csv("../data/derived_products/nla_2017_formatted.csv")
 
 # Step 2: Aggregate data --------------------------------------------------
 
 data = profiles %>%
-  filter(SITE_ID %in% c(check_df_area %>%
+  filter(SITE_ID %in% c(check_strat %>%
            filter(stratified == "stratified") %>%
            select(SITE_ID) %>%
            .$SITE_ID)) %>%
@@ -54,19 +56,7 @@ data = profiles %>%
          date = lubridate::month(lubridate::dmy(DATE_COL))) %>%
   ungroup() %>%
   group_by(ts_group, ts) %>%
-  mutate(number = n_distinct(SITE_ID)) %>%
-  inner_join(x = .,
-             y = data_area %>%
-               select(SITE_ID, INDEX_SITE_DEPTH, AREA_HA) %>%
-              unique())
-
-sink("skim.txt")
-data %>%
-  group_by(ts_group, ts) %>%
-  skimr::skim()
-sink()  # turn off diversion
-
-
+  mutate(number = n_distinct(SITE_ID)) 
 
 # Add scaleFactor to ensure that oxygen evenly overlays temperature. 
 scaleFactor <-  max(data$OXYGEN, na.rm = TRUE) / max(data$TEMPERATURE, na.rm = TRUE)
@@ -191,26 +181,8 @@ ggpubr::ggarrange(plotlist = plot_list[c(1, 5,
 ggsave(filename = "../figures/depth_plots_deepest_lakes.png", 
        width = 6, height = 10, units = "in", bg = "white")
 
-### Aggregate lake profile, depth, and area data
 
-profiles <- read_csv("../data/nla_all_years/nla_2017_profile-data.csv")
-
-max_depth <- read_csv("../data/nla_all_years/nla_2017_secchi-data.csv")
-
-lake_area <- read_csv("../data/nla_all_years/nla_2017_site_information-data.csv")
-
-combined_data <- left_join(x = profiles %>%
-                             select(UID, SITE_ID, VISIT_NO, DEPTH, TEMPERATURE, OXYGEN, PH, CONDUCTIVITY),
-                           y = max_depth %>%
-                             select(UID, SITE_ID, VISIT_NO, INDEX_SITE_DEPTH)) %>%
-  left_join(x = .,
-            y = lake_area %>%
-              select(UID, SITE_ID, VISIT_NO, AREA_HA, LAT_DD83, LON_DD83)) %>%
-  mutate(INDEX_SITE_DEPTH = ifelse(DEPTH > INDEX_SITE_DEPTH, DEPTH, INDEX_SITE_DEPTH))
-
-write_csv(x = combined_data, file = "../data/derived_products/combined_profiles.csv")
-
-###### First Quantile
+### Now, let's repeat our analyses but ensure that the upper quartile of lakes are likewise exhibiting the same patterns.
 
 quibble <- function(x, q = c(0.25, 0.5, 0.75)) {
   tibble(x = quantile(x, q), q = q)
@@ -329,3 +301,10 @@ for(g in 1:length(unique_ts_groups)){
     plot_count <- plot_count + 1
   }
 }
+
+ggpubr::ggarrange(plotlist = plot_list[c(1, 5,
+                                         2, 6,
+                                         3, 7,
+                                         4, 8)], 
+                  align = "hv", nrow = 4, ncol = 2, 
+                  common.legend = TRUE, legend = "bottom")

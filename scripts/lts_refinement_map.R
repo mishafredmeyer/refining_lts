@@ -10,8 +10,12 @@
 
 ## Load necessary packages
 
-library(tidyverse)
-library(sf)
+library(tidyverse)## 2.0.0
+library(sf) ## 1.0.19
+library(ggtext) ## 0.1.2
+library(cowplot) ## 1.1.3
+
+sf_use_s2(FALSE) ## If running on a Mac, be sure to either comment out this line or set to TRUE
 
 ### Load the data
 
@@ -188,6 +192,11 @@ nla_2017_formatted <- nla_2017_tntp %>%
                                     "eutro", "hypereu"))) %>%
   pivot_longer(cols = c(ncp_ts, chla_ts, ptl_ts, sdd_ts, rot_ts, crs_ts), names_to = "ts_group", values_to = "ts")
 
+
+write_csv(x = nla_2007_formatted, file = "../data/derived_products/nla_2007_formatted.csv")
+write_csv(x = nla_2012_ptl_color, file = "../data/derived_products/nla_2012_formatted.csv")
+write_csv(x = nla_2017_formatted, file = "../data/derived_products/nla_2017_formatted.csv")
+
 ## Bring in USA map
 usa <- sf::st_as_sf(map_data("usa"), 
                       coords = c("long", "lat"),
@@ -324,7 +333,7 @@ bar_plot <- map_df(.x = unique(epa_ecoregions$WSA9_NAME),
   count() %>%
   ungroup() %>%
   group_by(WSA9_NAME, ts_group) %>%
-  mutate(prop = n / sum(n)) %>% View()
+  mutate(prop = n / sum(n)) %>% 
   ggplot() +
   geom_bar(aes(x = ts_group,
                y = prop, 
