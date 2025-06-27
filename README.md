@@ -1,4 +1,4 @@
-Last edited: 20 January 2023
+Last edited: 27 June 2025
 
 # Refining the LTS Concept
 
